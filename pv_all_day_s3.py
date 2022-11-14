@@ -13,7 +13,7 @@ def PickleLoad(path_read):
         data_list = pickle.load(f)
     return data_list
 
-
+#
 if __name__ == '__main__':
     awsS3 = AmazonS3('elephants3')
     utc_now = datetime.datetime.utcnow()
