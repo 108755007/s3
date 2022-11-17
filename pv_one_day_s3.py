@@ -20,7 +20,7 @@ def fetch_source_domain_mapping(web_id):
     #print(query)
     data = DBhelper('dione').ExecuteSelect(query)
     source_domain_mapping = [d[0] for d in data]
-    return set(source_domain_mapping)
+    return source_domain_mapping
 
 def fetch_web_id(utc_yd):
     query = f"""SELECT web_id FROM pageview_record_day where date ='{utc_yd}' ORDER by abs(record) desc limit 10"""
@@ -29,15 +29,21 @@ def fetch_web_id(utc_yd):
 #
 if __name__ == '__main__':
     for kk in range(1, 8):
-        domain_dict = collections.defaultdict(set)
+        domain_dict = {}
         awsS3 = AmazonS3('elephants3')
         utc_now = datetime.datetime.utcnow() - datetime.timedelta(days=kk)
         utc_yesterday = utc_now - datetime.timedelta(days=1)
         utc_day = utc_now.strftime("%Y-%m-%d")
         utc_yd = utc_yesterday.strftime("%Y-%m-%d")
         web_id_list = fetch_web_id(utc_yd)
+        d = {}
         for web_id in tqdm(web_id_list):
-            domain_dict[web_id] = fetch_source_domain_mapping(web_id)
+            d[web_id] = fetch_source_domain_mapping(web_id)
+        for web_id, domains in d.items():
+            domain_dict[web_id] = [web_id]
+            for domain in domains:
+                if not re.findall(web_id, domain):
+                    domain_dict[web_id].append(domain)
         dic = collections.defaultdict(int)
         dic_in = collections.defaultdict(int)
         object_list = []
@@ -53,7 +59,7 @@ if __name__ == '__main__':
                     dic[curr] += 1
                     if curr in web_id_list and r.get('referrer_url'):
                         for domain in domain_dict[curr]:
-                            if not re.findall(domain,r.get('referrer_url')) == []:
+                            if re.findall(domain,r.get('referrer_url')):
                                 dic_in[curr] += 1
                                 break
         df = pd.DataFrame.from_dict(dic, orient='index', columns=['record'])
