@@ -20,16 +20,16 @@ def fetch_source_domain_mapping(web_id):
     #print(query)
     data = DBhelper('dione').ExecuteSelect(query)
     source_domain_mapping = [d[0] for d in data]
-    return source_domain_mapping
+    return set(source_domain_mapping)
 
 def fetch_web_id(utc_yd):
     query = f"""SELECT web_id FROM pageview_record_day where date ='{utc_yd}' ORDER by abs(record) desc limit 10"""
     data_a = DBhelper('dione').ExecuteSelect(query)
-    return list(set([i[0] for i in data_a]))
+    return set([i[0] for i in data_a])
 #
 if __name__ == '__main__':
     for kk in range(1, 8):
-        domain_dict = collections.defaultdict(list)
+        domain_dict = collections.defaultdict(set)
         awsS3 = AmazonS3('elephants3')
         utc_now = datetime.datetime.utcnow() - datetime.timedelta(days=kk)
         utc_yesterday = utc_now - datetime.timedelta(days=1)
@@ -37,7 +37,7 @@ if __name__ == '__main__':
         utc_yd = utc_yesterday.strftime("%Y-%m-%d")
         web_id_list = fetch_web_id(utc_yd)
         for web_id in tqdm(web_id_list):
-            domain_dict[web_id].append(fetch_source_domain_mapping(web_id))
+            domain_dict[web_id] = fetch_source_domain_mapping(web_id)
         dic = collections.defaultdict(int)
         dic_in = collections.defaultdict(int)
         object_list = []
@@ -45,15 +45,14 @@ if __name__ == '__main__':
             object_list += list(awsS3.getDateHourObjects(utc_day, i))
         for j in range(16, 24):
             object_list += list(awsS3.getDateHourObjects(utc_yd, j))
-
         for i, obj in tqdm(enumerate(object_list), ascii=True, desc=f"{utc_day}"):
             raw = json.loads(awsS3.Read(obj.key))
             for r in raw:
                 curr = r.get('web_id', '')
                 if curr:
                     dic[curr] += 1
-                    if curr in web_id_list and domain_dict[curr][0] and r.get('referrer_url'):
-                        for domain in domain_dict[curr][0]:
+                    if curr in web_id_list and r.get('referrer_url'):
+                        for domain in domain_dict[curr]:
                             if not re.findall(domain,r.get('referrer_url')) == []:
                                 dic_in[curr] += 1
                                 break
