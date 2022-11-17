@@ -23,12 +23,12 @@ def fetch_source_domain_mapping(web_id):
     return source_domain_mapping
 
 def fetch_web_id(utc_yd):
-    query = f"""SELECT web_id FROM pageview_record_day where date ='{utc_yd}' ORDER by abs(record) desc limit 10"""
+    query = f"""SELECT web_id FROM pageview_record_day where date ='{utc_yd}' ORDER by abs(record) desc limit 100"""
     data_a = DBhelper('dione').ExecuteSelect(query)
     return set([i[0] for i in data_a])
 #
 if __name__ == '__main__':
-    for kk in range(1, 8):
+    for kk in range(2, 8):
         domain_dict = {}
         awsS3 = AmazonS3('elephants3')
         utc_now = datetime.datetime.utcnow() - datetime.timedelta(days=kk)
