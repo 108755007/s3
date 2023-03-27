@@ -39,28 +39,22 @@ if __name__ == '__main__':
                 if not r.get('referrer_url'):
                     continue
                 ans[r.get('uuid')].append([str_to_timetamp(r.get('datetime')),r.get('referrer_url')])
-    all_view = 0
-    likr_view = 0
-    for uuid,val in ans.items():
-        val = sorted(val,key=lambda x:x[0])
-        last_time = 0
-        for i, view in enumerate(val):
-            all_view += 1
-            if last_time != 0 and (view[0] - last_time) < 1200:
-                likr_view += 1
-                last_time = view[0]
-                continue
-            like = re.findall('.*&utm_source=likr&utm_medium=pubnews.*', view[1])
-            if like:
-                likr_view += 1
-                last_time = view[0]
+    # all_view = 0
+    # likr_view = 0
+    # for uuid,val in ans.items():
+    #     val = sorted(val,key=lambda x:x[0])
+    #     last_time = 0
+    #     for i, view in enumerate(val):
+    #         all_view += 1
+    #         if last_time != 0 and (view[0] - last_time) < 1200:
+    #             likr_view += 1
+    #             last_time = view[0]
+    #             continue
+    #         like = re.findall('.*&utm_source=likr&utm_medium=pubnews.*', view[1])
+    #         if like:
+    #             likr_view += 1
+    #             last_time = view[0]
     with open('rick.pickle', 'wb') as f:
-        pickle.dump([all_view,likr_view], f)
-    print(likr_view)
-    print(all_view)
+        pickle.dump(ans, f)
 
 
-
-
-
-    print(dic)
