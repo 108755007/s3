@@ -42,8 +42,10 @@ if __name__ == '__main__':
                     continue
                 if not r.get('referrer_url'):
                     continue
+                if not r.get('uuid'):
+                    continue
                 ans[r.get('uuid')].append([str_to_timetamp(r.get('datetime')),r.get('referrer_url')])
-    ans['all'].append(d)
+    ans['all'].append([d])
     with open(f'rick_{kk}.pickle', 'wb') as f:
         pickle.dump(ans, f)
 
