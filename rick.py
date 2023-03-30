@@ -28,24 +28,31 @@ if __name__ == '__main__':
             object_list[i] += list(awsS3.getDateHourObjects(utc_day, i))
         for j in range(16, 24):
             object_list[j] += list(awsS3.getDateHourObjects(utc_yd, j))
+        g = {}
+        g['upmedia'] = collections.defaultdict(list)
+        g['nownews'] = collections.defaultdict(list)
         ans = collections.defaultdict(list)
         d = 0
+        u = 0
         for hour,obj_hour in enumerate(object_list):
             for i,obj in tqdm(enumerate(obj_hour), ascii=True, desc=f"{utc_day}"):
                 raw = json.loads(awsS3.Read(obj.key))
                 for r in raw:
-                    if r.get('web_id') != 'upmedia':
-                        continue
-                    d += 1
-                    if not r.get('datetime'):
-                        continue
-                    if not r.get('referrer_url'):
-                        continue
-                    if not r.get('uuid'):
-                        continue
-                    ans[str(r.get('uuid'))].append([str_to_timetamp(r.get('datetime')),r.get('referrer_url')])
-        ans['all'].append([d])
-        with open(f'{upmedia}_{kk}.pickle', 'wb') as f:
-            pickle.dump(ans, f)
+                    if r.get('web_id') == 'upmedia' or r.get('web_id') == 'nownews':
+                        if r.get('web_id') == 'upmedia':
+                            u += 1
+                        if r.get('web_id') == 'nownews':
+                            d +=1
+                        if not r.get('datetime'):
+                            continue
+                        if not r.get('referrer_url'):
+                            continue
+                        if not r.get('uuid'):
+                            continue
+                        g[r.get('web_id')].append([str_to_timetamp(r.get('datetime')),r.get('referrer_url')])
+        g['u'] = u
+        g['d'] = d
+        with open(f'rick_{kk}.pickle', 'wb') as f:
+            pickle.dump(g, f)
 
 
