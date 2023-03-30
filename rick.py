@@ -49,7 +49,7 @@ if __name__ == '__main__':
                             continue
                         if not r.get('uuid'):
                             continue
-                        g[r.get('web_id')][r.get('uuid')].append([str_to_timetamp(r.get('datetime')),r.get('referrer_url')])
+                        g[r.get('web_id')][str(r.get('uuid'))].append([str_to_timetamp(r.get('datetime')),r.get('referrer_url')])
         g['u'] = u
         g['d'] = d
         with open(f'rick_{kk}.pickle', 'wb') as f:
