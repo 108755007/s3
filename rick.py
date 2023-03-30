@@ -16,7 +16,7 @@ def str_to_timetamp(s):
 
 
 if __name__ == '__main__':
-    for kk in range(1, 8):
+    for kk in range(2, 6):
         domain_dict = {}
         awsS3 = AmazonS3('elephant-new')
         utc_now = datetime.datetime.utcnow() - datetime.timedelta(days=kk)
@@ -34,7 +34,7 @@ if __name__ == '__main__':
             for i,obj in tqdm(enumerate(obj_hour), ascii=True, desc=f"{utc_day}"):
                 raw = json.loads(awsS3.Read(obj.key))
                 for r in raw:
-                    if r.get('web_id') != 'popdaily2':
+                    if r.get('web_id') != 'upmedia':
                         continue
                     d += 1
                     if not r.get('datetime'):
@@ -45,7 +45,7 @@ if __name__ == '__main__':
                         continue
                     ans[str(r.get('uuid'))].append([str_to_timetamp(r.get('datetime')),r.get('referrer_url')])
         ans['all'].append([d])
-        with open(f'rick_{kk}.pickle', 'wb') as f:
+        with open(f'{upmedia}_{kk}.pickle', 'wb') as f:
             pickle.dump(ans, f)
 
 
