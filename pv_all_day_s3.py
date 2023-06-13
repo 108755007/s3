@@ -26,6 +26,15 @@ def fetch_web_id(utc_yd):
     query = f"""SELECT web_id FROM pageview_record_day where date ='{utc_yd}' ORDER by abs(record) desc limit 100"""
     data_a = DBhelper('dione').ExecuteSelect(query)
     return set([i[0] for i in data_a])
+
+def fetch_specific():
+    dic = collections.defaultdict(set)
+    query = f"""SELECT web_id,article_code FROM pageview_specific_article """
+    data = DBhelper('dione').ExecuteSelect(query)
+    for web_id,code in data:
+        dic[web_id].add(code)
+    return dic
+
 #
 if __name__ == '__main__':
     domain_dict = {}
@@ -35,6 +44,8 @@ if __name__ == '__main__':
     utc_day = utc_now.strftime("%Y-%m-%d")
     utc_yd = utc_yesterday.strftime("%Y-%m-%d")
     web_id_list = fetch_web_id(utc_yd)
+    specific = fetch_specific()
+    specific_df = pd.DataFrame(columns=['web_id','article_code','current_url','referrer_url','datetimes','date'])
     d = {}
     for web_id in tqdm(web_id_list):
         d[web_id] = fetch_source_domain_mapping(web_id)
@@ -46,6 +57,7 @@ if __name__ == '__main__':
     dic = collections.defaultdict(int)
     dic_in = collections.defaultdict(int)
     object_list = []
+    l, i3, u = [], [], []
     for i in range(16):
         object_list += list(awsS3.getDateHourObjects(utc_day, i))
     for j in range(16, 24):
@@ -54,6 +66,12 @@ if __name__ == '__main__':
         raw = json.loads(awsS3.Read(obj.key))
         for r in raw:
             curr = r.get('web_id', '')
+            if curr == 'lovingfamily':
+                l.append(r)
+            if curr == 'i3fresh':
+                i3.append(r)
+            if curr == 'upmedia':
+                u.append(r)
             if curr:
                 dic[curr] += 1
                 if curr in web_id_list and r.get('referrer_url'):
@@ -61,6 +79,23 @@ if __name__ == '__main__':
                         if re.findall(domain,r.get('referrer_url')):
                             dic_in[curr] += 1
                             break
+                if curr in specific:
+                    url = r.get('current_url')
+                    if url:
+                        for code in specific[curr]:
+                            if code in url:
+                                ref_url = r.get('referrer_url')
+                                ref_url = ref_url if ref_url else '_'
+                                specific_df.loc[len(specific_df)] = [curr,code,url, ref_url,r.get('datetime'),utc_day]
+
+    with open(f'ntu_data/lovingfamily_{utc_day}.pickle', 'wb') as f:
+        pickle.dump(l, f)
+    with open(f'ntu_data/i3fresh_{utc_day}.pickle', 'wb') as f:
+        pickle.dump(i3, f)
+    with open(f'ntu_data/upmedia_{utc_day}.pickle', 'wb') as f:
+        pickle.dump(u, f)
+
+
     df = pd.DataFrame.from_dict(dic, orient='index', columns=['record'])
     df = df.reset_index()
     df['web_id'] = df['index']
@@ -79,3 +114,4 @@ if __name__ == '__main__':
     df_mix['is_calculation'] = df_mix.apply(lambda x: 1 if x['web_id'] in web_id_list else 0,axis=1)
     df_mix['date'] = utc_day
     DBhelper.ExecuteUpdatebyChunk(df_mix, db='dione', table='pageview_record_day', chunk_size=100000, is_ssh=False)
+    DBhelper.ExecuteUpdatebyChunk(specific_df, db='dione', table='pageview_specific_article_record', chunk_size=100000, is_ssh=False)
